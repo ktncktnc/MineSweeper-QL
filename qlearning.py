@@ -47,7 +47,7 @@ if __name__ == '__main__':
     reward_episode = np.array([])
 
     for e in range(n_episode):
-        print("Episode {i}/{n} e = {ep}".format(i=e, n=n_episode, ep=epsilon))
+        print("Episode {i}/{n} e = {ep}".format(i=e, n=n_episode, ep=agent.epsilon))
 
         # Reset env
         env.reset()
@@ -59,8 +59,8 @@ if __name__ == '__main__':
 
         for i in range(n_iteration):
             # Render
-            if RENDER and i % RENDER_FRAME == 0:
-                env.render(waitkey=10)
+            # if RENDER and i % RENDER_FRAME == 0:
+            #     env.render(waitkey=1000)
 
             # Action
             action = agent.act(state)
@@ -80,16 +80,14 @@ if __name__ == '__main__':
             # Next state
             state = next_state
 
-            if i % 100 == 0:
-                print("a")
-
         # Append reward
         reward_episode = np.append(reward_episode, total_reward)
+        print('Total Reward = ' + str(total_reward))
 
-        if e % UPDATE_TARGET_MODEL_FREQUENCY:
+        if (e+1) % UPDATE_TARGET_MODEL_FREQUENCY == 0:
             agent.update_target_network()
 
-        if e % SAVE_TRAINING_FREQUENCY:
+        if (e+1) % SAVE_TRAINING_FREQUENCY == 0:
             agent.save("./saved/trial_{}.h5".format(e))
 
 

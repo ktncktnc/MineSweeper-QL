@@ -10,7 +10,7 @@ from DQL.utils import *
 
 class MineSweeperAgent:
     def __init__(self, name, board_size, batch_size=8,
-                 lr=0.01, epsilon=1.0, epsilon_min=0.1, epsilon_decay=0.999999, gamma=0.95,
+                 lr=0.01, epsilon=1.0, epsilon_min=0.1, epsilon_decay=0.9999, gamma=0.95,
                  conv_units=64, dense_units=256,
                  mem_size=5000):
 
@@ -67,13 +67,13 @@ class MineSweeperAgent:
 
     def act(self, state):
         flatted_state = state.reshape(-1)
-        unsolved = [i for i in flatted_state if i == -1]
+        unsolved = [i for i, x in enumerate(flatted_state) if x == -1]
 
         rand = np.random.rand()
         if rand < self.epsilon:
             move = np.random.choice(unsolved)
         else:
-            moves = self.main_network.predict(np.expand_dims(state, 0))
+            moves = self.main_network.predict(np.expand_dims(state, 0))[0]
             moves[flatted_state != -1] = np.min(moves)
 
             move = np.argmax(moves)
@@ -87,12 +87,12 @@ class MineSweeperAgent:
         train_target = []
 
         for state, action_idx, reward, next_state, done in batch:
-            target = self.main_network.predict(np.expand_dims(state, 0))
+            target = self.main_network.predict(np.expand_dims(state, 0))[0]
 
             if done:
                 target[action_idx] = reward
             else:
-                t = self.target_network.predict(np.expand_dims(state, 0))
+                t = self.target_network.predict(np.expand_dims(state, 0))[0]
                 target[action_idx] = reward + self.gamma * np.amax(t)
 
             train_state.append(state)

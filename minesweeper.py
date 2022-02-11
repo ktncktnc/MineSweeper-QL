@@ -132,8 +132,8 @@ class MineSweeper:
             x_text = int((self.image_size - text_size[0]) / 2)
             y_text = int((self.image_size - text_size[1]) / 2)
             image = cv2.putText(image, text, (x_text, y_text), font, 2, color, 4)
-            cv2.imshow(self.window_name, image)
-            k = cv2.waitKey(10)
+            #cv2.imshow(self.window_name, image)
+            #k = cv2.waitKey(10)
 
         return self.is_done
 
@@ -235,7 +235,7 @@ class MineSweeper:
 
 
 if __name__ == '__main__':
-    game = MineSweeper(3)
+    game = MineSweeper(1)
     x = game.board_size
     y = game.board_size
 
