@@ -1,21 +1,18 @@
-import numpy as np
 import argparse
 from DQL.agent import MineSweeperAgent
 from minesweeper import *
+from tqdm import tqdm
+from DQL.utils import *
 
 RENDER = False
 RENDER_FRAME = 50
-SAVE_TRAINING_FREQUENCY = 25
+SAVE_TRAINING_FREQUENCY = 1000
 UPDATE_TARGET_MODEL_FREQUENCY = 10
-
-def rand_action(board_size):
-    # TODO: remove ....
-    x_ind = np.random.choice(range(board_size))
-    y_ind = np.random.choice(range(board_size))
-    return np.array([x_ind, y_ind])
+PRINT_LOG_FREQUENCY = 100
+TRAINING_FREQUENCY = 5
 
 
-if __name__ == '__main__':
+def main():
     # Args
     parser = argparse.ArgumentParser(description='Training a QL agent to play MineSweeper.')
     parser.add_argument("-l", '--level', help="Game level", default=1)
@@ -42,12 +39,13 @@ if __name__ == '__main__':
     epsilon_decay = 0.005
     # ----
     n_episode = 10000
-    n_iteration = 10000
+    n_iteration = 1000
 
     reward_episode = np.array([])
+    n_opens_episode = np.array([])
+    n_wins_episode = np.array([])
 
-    for e in range(n_episode):
-        print("Episode {i}/{n} e = {ep}".format(i=e, n=n_episode, ep=agent.epsilon))
+    for e in tqdm(range(1, n_episode+1)):
 
         # Reset env
         env.reset()
@@ -56,12 +54,9 @@ if __name__ == '__main__':
         # Episode parameters
         done = False
         total_reward = 0
+        past_n_wins = env.n_wins
 
         for i in range(n_iteration):
-            # Render
-            # if RENDER and i % RENDER_FRAME == 0:
-            #     env.render(waitkey=1000)
-
             # Action
             action = agent.act(state)
             observation, reward, done = env.step(action[0], action[1])
@@ -73,6 +68,7 @@ if __name__ == '__main__':
                 agent.replay()
 
             total_reward += reward
+            # print("reward = " + str(reward))
 
             if done:
                 break
@@ -82,18 +78,27 @@ if __name__ == '__main__':
 
         # Append reward
         reward_episode = np.append(reward_episode, total_reward)
-        print('Total Reward = ' + str(total_reward))
+        n_opens_episode = np.append(n_opens_episode, i)
 
-        if (e+1) % UPDATE_TARGET_MODEL_FREQUENCY == 0:
+        if not e % PRINT_LOG_FREQUENCY:
+            print("Episode {i}/{n} e = {ep} Total Reward = {r} average open = {o} wins = {w}".format(i=e, n=n_episode,
+                                                                                                     ep=agent.epsilon,
+                                                                                                     r=np.median(
+                                                                                                         reward_episode[
+                                                                                                         -PRINT_LOG_FREQUENCY:]),
+                                                                                                     o=np.median(
+                                                                                                         n_opens_episode[
+                                                                                                         -PRINT_LOG_FREQUENCY:]),
+                                                                                                     w=env.n_wins
+                                                                                                     ))
+
+            #print(agent.history.history['loss'][-10:])
+        if not e % UPDATE_TARGET_MODEL_FREQUENCY:
             agent.update_target_network()
 
-        if (e+1) % SAVE_TRAINING_FREQUENCY == 0:
-            agent.save("./saved/trial_{}.h5".format(e))
+        if not e % SAVE_TRAINING_FREQUENCY:
+            agent.save("./saved/trial_weight_l{l}_{e}.h5".format(e=e, l=agent.board_size))
 
 
-
-
-
-
-
-
+if __name__ == '__main__':
+    main()

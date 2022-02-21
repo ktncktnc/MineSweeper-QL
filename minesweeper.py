@@ -1,5 +1,8 @@
+import os
+
 import cv2
 import numpy as np
+import sys
 
 
 class MineSweeper:
@@ -10,8 +13,10 @@ class MineSweeper:
         self.mark_cell = mark_cell
         self.unknow_cell = unknow_cell
         self.image_size = image_size
+        self.n_wins = 0
         self.window_name = 'minesweeper'
-        self.mine_num_color = [(187, 186, 178), (226, 173, 93), (157, 179, 69), (63, 208, 244), (51, 118, 220), (38, 50, 169), (172, 68, 142)]
+        self.mine_num_color = [(187, 186, 178), (226, 173, 93), (157, 179, 69), (63, 208, 244), (51, 118, 220),
+                               (38, 50, 169), (172, 68, 142)]
         self.init()
 
     def init(self):
@@ -37,7 +42,7 @@ class MineSweeper:
             self.board_size = 20
             self.mine_num = int(self.board_size * self.board_size * 0.2)
 
-    def create_board(self, mine_cell=-10):
+    def create_board(self, mine_cell=-2):
         board = np.zeros((self.board_size, self.board_size), int)
         x_indices = np.random.choice(range(self.board_size), size=self.mine_num)
         y_indices = np.random.choice(range(self.board_size), size=self.mine_num)
@@ -93,6 +98,9 @@ class MineSweeper:
         done = self.check_result(result)
         reward = self.check_reward(result)
         observation = self.render(True)
+
+        os.environ['game_over'] = str(done)
+
         return observation, reward, done
 
     def check_step(self, x, y):
@@ -102,21 +110,23 @@ class MineSweeper:
 
     def check_reward(self, result):
         if result == 'over':
-            return -100
+            return -1
         elif result == 'complete':
-            return 100
-        elif result == 'fail':
-            return -10
-        else:
             return 1
+        elif result == 'fail':
+            return -0.3
+        else:
+            return 0.3
 
     def check_result(self, result):
         image = self.render(True)
         if result == 'fail' or result == 'success':
-            if len(self.game_board[self.game_board == self.unknow_cell]) + len(self.game_board[self.game_board == self.mark_cell]) == self.mine_num:
+            if len(self.game_board[self.game_board == self.unknow_cell]) + len(
+                    self.game_board[self.game_board == self.mark_cell]) == self.mine_num:
                 color = (226, 173, 93)
                 text = 'Complete'
                 self.is_done = 1
+                self.n_wins += 1
             else:
                 self.is_done = 0
         else:
@@ -132,8 +142,8 @@ class MineSweeper:
             x_text = int((self.image_size - text_size[0]) / 2)
             y_text = int((self.image_size - text_size[1]) / 2)
             image = cv2.putText(image, text, (x_text, y_text), font, 2, color, 4)
-            #cv2.imshow(self.window_name, image)
-            #k = cv2.waitKey(10)
+            cv2.imshow(self.window_name, image)
+            k = cv2.waitKey(10)
 
         return self.is_done
 
@@ -235,18 +245,19 @@ class MineSweeper:
 
 
 if __name__ == '__main__':
-    game = MineSweeper(1)
+    game = MineSweeper(3)
     x = game.board_size
     y = game.board_size
 
-    done = 0
-    while not done:
+    os.environ['game_over'] = '0'
 
+    while os.environ['game_over'] == '0':
         # x_indice = np.random.choice(range(game.board_size))
         # y_indice = np.random.choice(range(game.board_size))
         # observation, reward, done = game.step(x_indice, y_indice)
-        game.render()
         # print(x_indice, y_indice, reward, done)
-
+        #
         # cv2.imshow(game.window_name, observation)
         # cv2.waitKey(500)
+        game.render()
+        print()
