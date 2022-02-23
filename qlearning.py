@@ -9,7 +9,7 @@ from DQL.utils import *
 
 RENDER = False
 RENDER_FRAME = 50
-SAVE_TRAINING_FREQUENCY = 1000
+SAVE_TRAINING_FREQUENCY = 3000
 UPDATE_TARGET_MODEL_FREQUENCY = 10
 PRINT_LOG_FREQUENCY = 100
 TRAINING_FREQUENCY = 5
@@ -35,14 +35,7 @@ def main():
     actions_size = states_size
 
     # Parameters
-    lr = 0.02
-    gamma = 0.95
-    # ----
-    epsilon = 1.0
-    min_epsilon = 0.05
-    epsilon_decay = 0.005
-    # ----
-    n_episode = 10000
+    n_episode = 100000
     n_iteration = 1000
 
     reward_episode = np.array([])
@@ -94,7 +87,6 @@ def main():
 
             past_n_wins = env.n_wins
 
-            #print(agent.history.history['loss'][-10:])
         if not e % UPDATE_TARGET_MODEL_FREQUENCY:
             agent.update_target_network()
 

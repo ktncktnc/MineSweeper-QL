@@ -9,8 +9,8 @@ from DQL.utils import *
 
 class MineSweeperAgent:
     def __init__(self, name, board_size, batch_size=32,
-                 lr=0.01, epsilon=1.0, epsilon_min=0.1, epsilon_decay=0.9999, gamma=0.95,
-                 conv_units=64, dense_units=256,
+                 lr=0.01, lr_min = 0.001, lr_decay = 0.99975, epsilon=1.0, epsilon_min=0.1, epsilon_decay=0.9999, gamma=0.1,
+                 conv_units=128, dense_units=512,
                  mem_size=50000):
 
         # Parameters
@@ -21,6 +21,9 @@ class MineSweeperAgent:
         self.batch_size = batch_size
 
         self.lr = lr
+        self.lr_min = lr_min
+        self.lr_decay = lr_decay
+
         self.gamma = gamma
 
         self.epsilon = epsilon
@@ -83,11 +86,9 @@ class MineSweeperAgent:
         train_target = []
 
         current_states = np.array([s[0] for s in batch])
-        # print(current_states.shape)
         targets = self.main_network.predict(current_states)
 
         next_states = np.array([s[3] for s in batch])
-        # print(next_states.shape)
         next_targets = self.target_network.predict(next_states)
 
         for i, (state, action_idx, reward, next_state, done) in enumerate(batch):
@@ -106,10 +107,9 @@ class MineSweeperAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-        self.lr = max(0.001, self.lr * 0.99985)
+        self.lr = max(self.lr_min, self.lr * self.lr_decay)
 
     def memorize(self, state, action, reward, next_state, done):
-        # print(normalize_matrix(state))
         self.memory.append((state, x_y_to_idx(action[0], action[1], self.board_size), reward, next_state, done))
 
     def update_target_network(self):
