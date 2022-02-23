@@ -8,10 +8,10 @@ from collections import deque
 from DQL.utils import *
 
 class MineSweeperAgent:
-    def __init__(self, name, board_size, batch_size=8,
+    def __init__(self, name, board_size, batch_size=32,
                  lr=0.01, epsilon=1.0, epsilon_min=0.1, epsilon_decay=0.9999, gamma=0.95,
-                 conv_units=16, dense_units=256,
-                 mem_size=500):
+                 conv_units=64, dense_units=256,
+                 mem_size=50000):
 
         # Parameters
         self.name = name
@@ -63,14 +63,15 @@ class MineSweeperAgent:
 
     def act(self, state):
         flatted_state = state.reshape(-1)
-        unsolved = [i for i, x in enumerate(flatted_state) if x == -1]
+        unsolved = [i for i, x in enumerate(flatted_state) if x == -0.125]
 
         rand = np.random.rand()
         if rand < self.epsilon:
             move = np.random.choice(unsolved)
         else:
-            moves = self.main_network.predict(np.reshape(normalize_matrix(state), (1, 10, 10, 1)))[0]
-            moves[flatted_state != -1] = np.min(moves)
+            moves = self.main_network.predict(np.reshape(state, (1, 10, 10, 1)))[0]
+            moves[flatted_state != -0.125] = np.min(moves)
+
             move = np.argmax(moves)
 
         return idx_to_x_y(move, self.board_size)
@@ -82,15 +83,15 @@ class MineSweeperAgent:
         train_target = []
 
         current_states = np.array([s[0] for s in batch])
-
+        # print(current_states.shape)
         targets = self.main_network.predict(current_states)
 
         next_states = np.array([s[3] for s in batch])
+        # print(next_states.shape)
         next_targets = self.target_network.predict(next_states)
 
         for i, (state, action_idx, reward, next_state, done) in enumerate(batch):
             target = targets[i]
-
             if done:
                 target[action_idx] = reward
             else:
@@ -105,10 +106,11 @@ class MineSweeperAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
+        self.lr = max(0.001, self.lr * 0.99985)
+
     def memorize(self, state, action, reward, next_state, done):
         # print(normalize_matrix(state))
-        self.memory.append((normalize_matrix(state), x_y_to_idx(action[0], action[1], self.board_size),
-                            reward, normalize_matrix(next_state), done))
+        self.memory.append((state, x_y_to_idx(action[0], action[1], self.board_size), reward, next_state, done))
 
     def update_target_network(self):
         self.target_network.set_weights(self.main_network.get_weights())

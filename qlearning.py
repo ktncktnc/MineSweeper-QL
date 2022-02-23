@@ -1,4 +1,7 @@
 import argparse
+
+import numpy as np
+
 from DQL.agent import MineSweeperAgent
 from minesweeper import *
 from tqdm import tqdm
@@ -24,6 +27,7 @@ def main():
 
     # Agent
     agent = MineSweeperAgent("minesweeper-deepql_v1", board_size=env.board_size)
+    #agent.main_network.load_weights("./saved/trial_weight_l10_1000.h5")
 
     # States & actions size
     states_size = init_state.shape
@@ -44,53 +48,51 @@ def main():
     reward_episode = np.array([])
     n_opens_episode = np.array([])
     n_wins_episode = np.array([])
-
+    past_n_wins = 0
     for e in tqdm(range(1, n_episode+1)):
 
         # Reset env
         env.reset()
-        state = env.game_board
 
         # Episode parameters
         done = False
         total_reward = 0
-        past_n_wins = env.n_wins
+        #print("Episode")
 
         for i in range(n_iteration):
-            # Action
+            state = env.game_board/8.0
             action = agent.act(state)
-            observation, reward, done = env.step(action[0], action[1])
 
-            next_state = env.game_board
+            observation, reward, done = env.step(action[0], action[1])
+            next_state = env.game_board/8.0
+
             agent.memorize(state, action, reward, next_state, done)
 
-            if len(agent.memory) > agent.batch_size:
+            if len(agent.memory) > 1000:
                 agent.replay()
 
             total_reward += reward
-            # print("reward = " + str(reward))
-
             if done:
+                n_opens_episode = np.append(n_opens_episode, i + 1)
                 break
-
-            # Next state
-            state = next_state
 
         # Append reward
         reward_episode = np.append(reward_episode, total_reward)
-        n_opens_episode = np.append(n_opens_episode, i)
+
 
         if not e % PRINT_LOG_FREQUENCY:
-            print("Episode {i}/{n} e = {ep} Total Reward = {r} average open = {o} wins = {w}".format(i=e, n=n_episode,
+            print("Episode {i}/{n} e = {ep} Total Reward = {r:.2} average open = {o:.2} wins = {w:.2}".format(i=e, n=n_episode,
                                                                                                      ep=agent.epsilon,
-                                                                                                     r=np.median(
+                                                                                                     r=np.average(
                                                                                                          reward_episode[
                                                                                                          -PRINT_LOG_FREQUENCY:]),
-                                                                                                     o=np.median(
+                                                                                                     o=np.average(
                                                                                                          n_opens_episode[
                                                                                                          -PRINT_LOG_FREQUENCY:]),
-                                                                                                     w=env.n_wins
+                                                                                                     w=(env.n_wins-past_n_wins)/PRINT_LOG_FREQUENCY
                                                                                                      ))
+
+            past_n_wins = env.n_wins
 
             #print(agent.history.history['loss'][-10:])
         if not e % UPDATE_TARGET_MODEL_FREQUENCY:

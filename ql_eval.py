@@ -25,8 +25,9 @@ if __name__ == '__main__':
 
         i = 1
         while not done:
-            state = env.game_board
+            state = env.game_board/8.0
             action = agent.act(state)
+            #print(action)
 
             observation, reward, done = env.step(action[0], action[1])
 

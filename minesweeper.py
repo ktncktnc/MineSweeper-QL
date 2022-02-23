@@ -6,7 +6,7 @@ import sys
 
 
 class MineSweeper:
-    def __init__(self, level=3, unknow_cell=-1, mine_cell=-10, mark_cell=-20, is_view=True, image_size=720):
+    def __init__(self, level=3, unknow_cell=-1, mine_cell=-2, mark_cell=-20, is_view=True, image_size=720):
         self.level = level
         self.is_view = is_view
         self.mine_cell = mine_cell
@@ -92,13 +92,38 @@ class MineSweeper:
         cv2.namedWindow(self.window_name)
         cv2.setMouseCallback(self.window_name, self.click_image)
 
+    def check_yolo(self, x, y):
+        for i in range(x - 1, x + 2):
+            if i < 0 or i >= self.board_size:
+                continue
+
+            for j in range(y - 1, y + 2):
+                if j < 0 or j >= self.board_size:
+                    continue
+
+                if i == x and j == y:
+                    continue
+
+                if self.game_board[i, j] != -1:
+                    return False
+
+        return True
+
     def step(self, x, y, mode='play'):
+        is_yolo = self.check_yolo(x, y)
+
         self.check_step(x, y)
         result = self.do_step(x, y, mode=mode)
-        done = self.check_result(result)
-        reward = self.check_reward(result)
-        observation = self.render(True)
 
+        done = self.check_result(result)
+        if done and result == 'success':
+            result = 'complete'
+        if not done and result == 'success' and is_yolo:
+            result = 'yolo'
+
+        #print(result)
+        reward = self.check_reward(result)
+        observation = self.render(False)
         os.environ['game_over'] = str(done)
 
         return observation, reward, done
@@ -115,11 +140,13 @@ class MineSweeper:
             return 1
         elif result == 'fail':
             return -0.3
+        elif result == 'yolo':
+            return -0.3
         else:
-            return 0.3
+            return 0.4
 
     def check_result(self, result):
-        image = self.render(True)
+        image = self.render(False)
         if result == 'fail' or result == 'success':
             if len(self.game_board[self.game_board == self.unknow_cell]) + len(
                     self.game_board[self.game_board == self.mark_cell]) == self.mine_num:
@@ -245,7 +272,7 @@ class MineSweeper:
 
 
 if __name__ == '__main__':
-    game = MineSweeper(3)
+    game = MineSweeper(1)
     x = game.board_size
     y = game.board_size
 
@@ -260,4 +287,3 @@ if __name__ == '__main__':
         # cv2.imshow(game.window_name, observation)
         # cv2.waitKey(500)
         game.render()
-        print()
